@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自炊・材料比率スライダー</title>
+    <style>
+        :root {
+            --primary-color: #ff7e5f;
+            --secondary-color: #4CAF50;
+            --bg-color: #f9f9f9;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--bg-color);
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        h1 { text-align: center; color: var(--primary-color); font-size: 1.4rem; margin-bottom: 10px; }
+        
+        /* 入力フォームのスタイル */
+        .add-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .add-form input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .btn-add {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .slider-container { 
+            margin: 20px 0; 
+            text-align: center; 
+            background: #fff5f2;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: var(--primary-color);
+        }
+        .person-count { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background-color: #fff5f2; font-size: 0.8rem; }
+        .amount { font-weight: bold; color: #d35400; font-size: 1.1rem; }
+        .btn-delete { color: #ff0000; cursor: pointer; border: none; background: none; font-size: 1.2rem; }
+        .ad-container { text-align: center; margin: 30px 0; }
+        footer { font-size: 0.75rem; color: #777; margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; }
+        .privacy-policy { background: #eee; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>自炊・材料比率スライダー</h1>
+        
+        <div class="add-form">
+            <input type="text" id="newName" placeholder="材料名 (例: 醤油)">
+            <input type="number" id="newAmount" placeholder="1人分" step="0.1">
+            <input type="text" id="newUnit" placeholder="単位">
+            <button class="btn-add" onclick="addIngredient()">追加</button>
+        </div>
+        <div class="slider-container">
+            <label>人数：<span id="personDisplay" class="person-count">1</span> 人分</label><br>
+            <input type="range" id="personSlider" min="1" max="10" value="1" step="1">
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>材料</th>
+                    <th>分量</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="ingredientBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div class="ad-container">
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AVB47+GC8AGI+5TL0+5YZ75" rel="nofollow">
+        <img border="0" width="300" height="250" alt="" src="https://www23.a8.net/svt/bgt?aid=260121607988&wid=001&eno=01&mid=s00000027162001003000&mc=1"></a>
+        <img border="0" width="1" height="1" src="https://www17.a8.net/0.gif?a8mat=4AVB47+GC8AGI+5TL0+5YZ75" alt="">
+    </div>
+    <footer>
+        <div class="privacy-policy">
+            <h3>プライバシーポリシー</h3>
+            <p>当サイトでは、第三者配信の広告サービス「A8.net」を利用しています。広告配信事業者は、利用者の興味に応じた商品やサービスの広告を表示するため、クッキー（Cookie）を使用することがあります。</p>
+            <p>本ツールで入力・追加された材料データはブラウザのメモリ内でのみ処理され、サーバーに保存されることはありません。</p>
+        </div>
+        <p style="text-align: center; margin-top: 20px;">&copy; 2026 自炊・材料比率スライダー</p>
+    </footer>
+
+    <script>
+        // 初期レシピデータ
+        let ingredients = [
+            { name: "お肉", amount: 150, unit: "g" },
+            { name: "醤油", amount: 1.5, unit: "大さじ" }
+        ];
+
+        const slider = document.getElementById('personSlider');
+        const display = document.getElementById('personDisplay');
+        const tbody = document.getElementById('ingredientBody');
+
+        function updateList() {
+            const count = slider.value;
+            display.innerText = count;
+            tbody.innerHTML = "";
+            
+            ingredients.forEach((item, index) => {
+                const total = (item.amount * count).toFixed(1).replace(/\.0$/, '');
+                const row = `<tr>
+                    <td>${item.name}</td>
+                    <td><span class="amount">${total}</span> ${item.unit}</td>
+                    <td><button class="btn-delete" onclick="deleteIngredient(${index})">×</button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function addIngredient() {
+            const name = document.getElementById('newName').value;
+            const amount = parseFloat(document.getElementById('newAmount').value);
+            const unit = document.getElementById('newUnit').value;
+
+            if (name && !isNaN(amount)) {
+                ingredients.push({ name, amount, unit });
+                updateList();
+                // 入力欄をクリア
+                document.getElementById('newName').value = "";
+                document.getElementById('newAmount').value = "";
+                document.getElementById('newUnit').value = "";
+            } else {
+                alert("材料名と数値を入力してください");
+            }
+        }
+
+        function deleteIngredient(index) {
+            ingredients.splice(index, 1);
+            updateList();
+        }
+
+        slider.addEventListener('input', updateList);
+        // 初回表示
+        updateList();
+    </script>
+</body>
+</html>
